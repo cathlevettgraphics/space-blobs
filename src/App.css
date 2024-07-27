@@ -1,38 +1,257 @@
-.App {
-  text-align: center;
+.gameContainer {
+  position: relative;
+  width: 90vmin; /* will always be a square in center of viewport */
+  height: auto;
+  aspect-ratio: 1 / 1;
+  color: #000;
+  background-image: url('/public/images/space.png');
+  background-size: 100%;
+  background-position: bottom;
+  overflow: hidden;
+  /* score logic */
+  counter-reset: score;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
-
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
-}
-
-.App-link {
-  color: #61dafb;
-}
-
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
+@keyframes spaceBlobAttack {
   to {
-    transform: rotate(360deg);
+    translate: var(--translateX) 55vmin;
   }
+}
+
+@keyframes endScreen {
+  to {
+    opacity: 0.8;
+    pointer-events: revert;
+  }
+}
+
+@keyframes timerCountdown {
+  0% {
+    content: '9';
+  }
+  10% {
+    content: '8';
+  }
+  20% {
+    content: '7';
+  }
+  30% {
+    content: '6';
+  }
+  40% {
+    content: '5';
+  }
+  50% {
+    content: '4';
+  }
+  60% {
+    content: '3';
+  }
+  70% {
+    content: '2';
+  }
+  80% {
+    content: '1';
+  }
+  90% {
+    content: '0';
+  }
+}
+
+input[name='screen'] {
+  display: none;
+  &#start:checked ~ .screenStart,
+  &#game:checked ~ .screenGame,
+  &#end:checked ~ .screenEnd,
+  &#info:checked ~ .screenInfo {
+    opacity: 1;
+    /* only enable pointer events on current 'screen' */
+    pointer-events: revert;
+  }
+
+  &#game:checked ~ .screenGame .goodBlob {
+    animation: spaceBlobAttack 3s var(--delay) ease-in forwards
+      var(--playState, running);
+  }
+
+  &#game:checked ~ .screenGame .badBlob {
+    animation: spaceBlobAttack 3.5s var(--delay) ease-in forwards
+      var(--playState, running);
+  }
+
+  &#game:checked ~ .screenGame .timer {
+    span::before {
+      animation: timerCountdown 100s -80s step-end forwards; /* negative delay starts from 20 */
+    }
+
+    span::after {
+      animation: timerCountdown 10s step-end 2 forwards;
+    }
+  }
+
+  &#game:checked ~ .screenEnd {
+    background-color: #fff;
+    /* animate in the end screen 12s after the game screen is checked  */
+    animation: endScreen 0.5s 20s forwards;
+  }
+}
+
+.screen {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 2vmin;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.5s;
+
+  & .infoText {
+    font-size: 2vmin;
+
+    & .good {
+      background-color: #00ff00;
+      padding: 5px 20px 10px;
+    }
+
+    & .bad {
+      background-color: #ff00c8;
+      color: white;
+      padding: 5px 20px 10px;
+      margin-bottom: 20vmin;
+    }
+  }
+}
+
+.buttonLabelContainer {
+  display: flex;
+  gap: 3vmin;
+}
+
+.buttonLabel {
+  font: inherit;
+  transform: rotate(-7deg);
+  padding: 8px 20px;
+  background-color: #ffff0095;
+  cursor: pointer;
+  user-select: none;
+  border: none;
+  transition: background-color 0.4s;
+
+  & p {
+    font-size: 3.5vmin;
+  }
+
+  &:hover {
+    background-color: #40ff0095;
+  }
+}
+
+h1 {
+  font-size: 6.5vmin;
+  text-align: center;
+  letter-spacing: -2px;
+  transform: rotate(-7deg);
+}
+
+p {
+  font: inherit;
+  user-select: none;
+}
+
+.goodBlobs {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+}
+
+.badBlobs {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+}
+
+.goodBlob {
+  appearance: none; /* remove default radio button styles */
+  position: absolute;
+  inset: -5vmin;
+  cursor: pointer;
+  border-radius: 64% 36% 41% 59% / 71% 33% 67% 29%;
+  background-image: linear-gradient(45deg, #00fbff50 20%, #00ff00 100%);
+
+  /* the order of theses transform properties does not matter. Here we are using individual properties, not transform: translate()  rotate() scale() etc */
+  translate: var(--translateX) -52vmin;
+  rotate: var(--angle);
+  scale: var(--scale);
+  transition: all 0.5s; /* transition: all applies to every transform, not just one */
+  animation-duration: var(--delay);
+
+  &:hover {
+    background-image: linear-gradient(45deg, #00fbff 20%, #00ff00 100%);
+  }
+
+  &:checked {
+    opacity: 0;
+    --playState: paused;
+    /* This transform runs after all the individual transforms above in good blob */
+    transform: translateY(-200%) scale(2) rotate(180deg);
+    /* increment when a blob is clicked */
+    counter-increment: score;
+  }
+}
+
+.badBlob {
+  appearance: none; /* remove default radio button styles */
+  position: absolute;
+  inset: -5vmin;
+  cursor: pointer;
+  border-radius: 53% 47% 84% 16% / 87% 28% 72% 13%;
+  background-image: linear-gradient(45deg, #ffff0050 0%, #ff00c850 100%);
+  /* the order of theses transform properties does not matter. Here we are using individual properties, not transform: translate()  rotate() scale() etc */
+  translate: var(--translateX) -52vmin;
+  rotate: var(--angle);
+  scale: var(--scale);
+  transition: all 0.5s; /* transition: all applies to every transform, not just one */
+  animation-duration: var(--delay);
+
+  &:hover {
+    background-image: linear-gradient(45deg, #ffff00 0%, #ff00c8 100%);
+  }
+
+  &:checked {
+    opacity: 0;
+    --playState: paused;
+    /* This transform runs after all the individual transforms above in good blob */
+    transform: translateY(-200%) scale(2) rotate(180deg);
+    /* decrement when a blob is clicked */
+    counter-increment: score -2;
+  }
+}
+
+.guiContainer {
+  align-content: start;
+  user-select: none;
+  pointer-events: none;
+
+  & .gui {
+    width: 100%;
+    display: flex;
+    padding: 2vmin;
+    font-size: 4vmin;
+  }
+}
+
+.timer span {
+  &::before {
+    content: '2';
+  }
+
+  &::after {
+    content: '0';
+  }
+}
+
+.score::after {
+  content: counter(score);
 }
